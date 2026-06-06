@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "eddyter": {
+      "command": "npx",
+      "args": ["-y", "eddyter-mcp"],
+      "env": {
+        "EDDYTER_LICENSE_KEY": "${EDDYTER_LICENSE_KEY}",
+        "EDDYTER_ALLOW_WRITES": "${EDDYTER_ALLOW_WRITES:-false}"
+      }
+    }
+  }
+}

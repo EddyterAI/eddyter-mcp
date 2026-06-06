@@ -1,0 +1,27 @@
+{
+  "name": "eddyter-mcp",
+  "version": "0.1.4",
+  "private": false,
+  "description": "MCP server for Eddyter — let your AI agent set up and configure the Eddyter editor.",
+  "license": "MIT",
+  "author": "EddyterAI",
+  "homepage": "https://github.com/EddyterAI/eddyter-mcp#readme",
+  "repository": { "type": "git", "url": "git+https://github.com/EddyterAI/eddyter-mcp.git" },
+  "bugs": { "url": "https://github.com/EddyterAI/eddyter-mcp/issues" },
+  "type": "module",
+  "bin": { "eddyter-mcp": "dist/index.js" },
+  "main": "dist/index.js",
+  "files": ["dist"],
+  "keywords": ["mcp", "model-context-protocol", "eddyter", "rich-text-editor", "claude", "cursor"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "inspect": "npx @modelcontextprotocol/inspector node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": { "@modelcontextprotocol/sdk": "^1.12.0", "zod": "^3.23.8" },
+  "devDependencies": { "@types/node": "^20.14.0", "typescript": "5.8.2" },
+  "engines": { "node": ">=18" }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "eddyter",
+  "version": "0.1.0",
+  "description": "Set up and configure the Eddyter editor from Claude — check license status, usage and feature config, generate SSR-safe integration code, and change live editor features by chat.",
+  "author": {
+    "name": "EddyterAI",
+    "url": "https://github.com/EddyterAI"
+  },
+  "homepage": "https://www.eddyter.com",
+  "repository": "https://github.com/EddyterAI/eddyter-mcp",
+  "license": "MIT",
+  "keywords": ["mcp", "eddyter", "rich-text-editor", "editor", "ai"]
+}
