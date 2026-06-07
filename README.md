@@ -1,12 +1,23 @@
 # Eddyter MCP Server
 
-A [Model Context Protocol](https://modelcontextprotocol.io) server that lets AI
-tools (Claude Desktop, Cursor, Windsurf, …) inspect and — in later steps —
-configure the [Eddyter](https://www.eddyter.com) editor on an admin's behalf.
+[![npm version](https://img.shields.io/npm/v/eddyter-mcp?color=cb3837&logo=npm)](https://www.npmjs.com/package/eddyter-mcp)
+[![license](https://img.shields.io/npm/l/eddyter-mcp?color=blue)](./LICENSE)
+[![MCP](https://img.shields.io/badge/MCP-compatible-8A2BE2)](https://modelcontextprotocol.io)
+[![Claude Code plugin](https://img.shields.io/badge/Claude_Code-plugin-d97757)](https://github.com/EddyterAI/eddyter-mcp)
 
-This is the **admin-side** surface: the account owner connects it to their AI
-tool using a license key. Changes made through it apply to every end-user of the
-editor that uses that key, with no redeploy (config lives server-side on the key).
+> **Set up and configure the [Eddyter](https://www.eddyter.com) editor by talking to your AI agent** —
+> the admin-side surface for Claude, Cursor, and other MCP tools.
+
+A [Model Context Protocol](https://modelcontextprotocol.io) server that lets AI
+tools check an Eddyter license key's status and usage, generate SSR-safe
+integration code, and **change live editor features by chat** — with no redeploy.
+
+This is the **admin-side** surface: the account owner connects it using a license
+key. Changes apply to every end-user of the editor that uses that key, because the
+config lives server-side on the key. The dashboard AI assistant ships next.
+
+<!-- TODO(launch): replace with a ≤5s GIF of an agent calling update_config -->
+<!-- ![demo](docs/demo.gif) -->
 
 ## Tools
 
