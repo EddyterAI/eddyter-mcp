@@ -1,0 +1,13 @@
+{
+  "name": "eddyter",
+  "displayName": "Eddyter",
+  "version": "0.1.4",
+  "description": "Set up and configure the Eddyter editor from Cursor — check license status, usage, and feature config, generate SSR-safe integration code, and change live editor features by chat.",
+  "author": {
+    "name": "EddyterAI",
+    "email": "support@eddyter.com"
+  },
+  "license": "MIT",
+  "keywords": ["mcp", "eddyter", "rich-text-editor", "editor", "ai", "cursor"],
+  "logo": "assets/logo.svg"
+}

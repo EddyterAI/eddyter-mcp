@@ -37,6 +37,21 @@ Backend: reads ride the public `/api/license/validate`; `get_usage` and
 `update_config` use the X-API-Key endpoints `GET /api/license/usage` and
 `POST /api/license/config`.
 
+## Use it in Claude (remote connector — no install)
+
+The hosted server lets you add Eddyter as a **custom connector by URL**, with
+sign-in handled by **OAuth** — no npm, no key pasting.
+
+1. **Claude.ai** or **Claude Desktop** → **Settings → Connectors → Add custom connector**
+2. URL: `https://mcp.eddyter.com/mcp`
+3. Sign in with your Eddyter account when prompted, then approve the license key to connect.
+4. The tools above are now available — e.g. ask *"Check my Eddyter license status."*
+
+Each OAuth token is scoped to one Eddyter license key. Reads are always available;
+`update_config` is enabled on the hosted server and stays clamped to your plan.
+
+> Prefer to run it locally (npm / Claude Code plugin)? See **Setup** below.
+
 ## Setup
 
 ```bash
@@ -45,7 +60,7 @@ pnpm build
 ```
 
 Get a license key from the dashboard: <https://www.eddyter.com/user/license-key>
-(The MCP never creates keys — humans mint them in the portal.)
+(The MCP never creates keys — humans mint them in the portal)
 
 The server is published to npm, so every client below runs it via `npx` — no
 clone or build needed.
@@ -116,6 +131,17 @@ printf '%s\n' \
   '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
   | node dist/index.js
 ```
+
+## Troubleshooting
+
+| Symptom | Fix |
+| --- | --- |
+| Sign-in fails / "Could not complete login" | Session likely expired — retry the connect, or sign in at eddyter.com first, then add the connector. |
+| "No active license key found" | The signed-in account has no active key. Create one at <https://www.eddyter.com/user/license-key>, then reconnect. |
+| Tools don't appear after connecting | Remove and re-add the connector so Claude re-runs the OAuth handshake. |
+| `update_config` "does nothing" | The change is clamped to your plan — a feature your plan locks stays off. Run `get_config` to see what your plan allows. |
+| Reads work but `get_usage` / `update_config` error | Those hit `api.eddyter.com`; check the key is active and the backend is reachable. |
+| Need help | Open an issue: <https://github.com/EddyterAI/eddyter-mcp/issues> |
 
 ## Notes
 
