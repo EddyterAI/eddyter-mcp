@@ -103,6 +103,23 @@ claude mcp add eddyter --env EDDYTER_LICENSE_KEY=eddyt_your_key_here -- npx -y e
 }
 ```
 
+### Codex (OpenAI)
+
+Codex supports remote OAuth MCP servers directly — no npm install, no key pasting:
+
+```bash
+codex mcp add eddyter --url https://mcp.eddyter.com/mcp
+```
+
+Or add it to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.eddyter]
+url = "https://mcp.eddyter.com/mcp"
+```
+
+Then ask: *"Check my Eddyter license status."* — you'll be prompted to sign in via OAuth on first use.
+
 Then ask the agent: *"Is my Eddyter key valid?"* or *"What editor features do I
 have enabled?"*
 
