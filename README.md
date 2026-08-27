@@ -62,8 +62,9 @@ pnpm build
 Get a license key from the dashboard: <https://www.eddyter.com/user/license-key>
 (The MCP never creates keys — humans mint them in the portal)
 
-The server is published to npm, so every client below runs it via `npx` — no
-clone or build needed.
+Cursor and Codex connect to the hosted server over OAuth — no key pasting. The
+server is also published to npm, so clients without remote-server support run it
+via `npx` — no clone or build needed.
 
 ### Claude Code — as a plugin (one step)
 
@@ -86,10 +87,28 @@ export EDDYTER_ALLOW_WRITES=true
 claude mcp add eddyter --env EDDYTER_LICENSE_KEY=eddyt_your_key_here -- npx -y eddyter-mcp
 ```
 
-### Claude Desktop / Cursor
+### Cursor — as a plugin
 
-`claude_desktop_config.json` (Settings → Developer → Edit Config), or
-`.cursor/mcp.json` in your project:
+Install **Eddyter** from [cursor.directory](https://cursor.directory/plugins).
+The plugin wires up the hosted server; you sign in via OAuth on first use — no
+npm install, no key pasting.
+
+Or add the remote server by hand in `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "eddyter": {
+      "type": "http",
+      "url": "https://mcp.eddyter.com/mcp"
+    }
+  }
+}
+```
+
+### Claude Desktop
+
+`claude_desktop_config.json` (Settings → Developer → Edit Config):
 
 ```json
 {

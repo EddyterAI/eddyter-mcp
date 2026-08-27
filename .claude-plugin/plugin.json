@@ -1,6 +1,6 @@
 {
   "name": "eddyter",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "description": "Set up and configure the Eddyter editor from Claude — check license status, usage and feature config, generate SSR-safe integration code, and change live editor features by chat.",
   "author": {
     "name": "EddyterAI",
