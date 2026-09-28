@@ -6,12 +6,12 @@
   },
   "metadata": {
     "description": "Eddyter — AI-native rich text editor. Tools to configure it from Claude.",
-    "version": "0.1.5"
+    "version": "0.1.6"
   },
   "plugins": [
     {
       "name": "eddyter",
-      "source": "./",
+      "source": "./plugin",
       "description": "Configure the Eddyter editor from Claude: read license status / usage / feature config, generate SSR-safe integration code, and change live editor features by chat (opt-in)."
     }
   ]
