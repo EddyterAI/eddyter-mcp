@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Eddyter — AI-native rich text editor. Tools to configure it from Claude.",
-    "version": "0.1.0"
+    "version": "0.1.5"
   },
   "plugins": [
     {

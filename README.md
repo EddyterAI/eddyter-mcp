@@ -52,6 +52,18 @@ Each OAuth token is scoped to one Eddyter license key. Reads are always availabl
 
 > Prefer to run it locally (npm / Claude Code plugin)? See **Setup** below.
 
+## What this plugin connects to and sends
+
+The plugin contains one remote MCP server and no local code, hooks or scripts.
+
+- **Connects to:** `https://mcp.eddyter.com/mcp` (Eddyter's hosted MCP server), over HTTPS with OAuth 2.0 sign-in.
+- **The server then calls:** Eddyter's API at `https://api.eddyter.com` to read your license status, usage and editor configuration, and (for `update_config`) to change that configuration.
+- **Data sent:** the tool arguments Claude passes (for example, a feature to turn on or off, or a framework name for a snippet) and your OAuth token. The token is scoped to one Eddyter license key.
+- **Not sent:** your documents, conversation history, local files or environment variables.
+- **Writes:** only `update_config` changes anything, and every change is clamped to your plan's limits.
+
+Privacy policy: <https://www.eddyter.com/privacy> (summary in [PRIVACY.md](./PRIVACY.md)).
+
 ## Setup
 
 ```bash
@@ -73,13 +85,9 @@ via `npx` — no clone or build needed.
 /plugin install eddyter@eddyter
 ```
 
-Then set your key once in your environment (the plugin reads `${EDDYTER_LICENSE_KEY}`):
-
-```bash
-export EDDYTER_LICENSE_KEY=eddyt_your_key_here
-# optional, to allow changing live config:
-export EDDYTER_ALLOW_WRITES=true
-```
+The plugin connects to the hosted server at `https://mcp.eddyter.com/mcp`. On first
+use you sign in with your Eddyter account via OAuth and pick the license key to
+connect — no key pasting and no environment variables.
 
 ### Claude Code — without the plugin
 
