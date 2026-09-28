@@ -62,7 +62,7 @@ The plugin contains one remote MCP server and no local code, hooks or scripts.
 - **Not sent:** your documents, conversation history, local files or environment variables.
 - **Writes:** only `update_config` changes anything, and every change is clamped to your plan's limits.
 
-Privacy policy: <https://www.eddyter.com/privacy> (summary in [PRIVACY.md](./PRIVACY.md)).
+Privacy policy: <https://eddyter.com/privacy-policy> · Terms: <https://eddyter.com/terms> (summary in [PRIVACY.md](./PRIVACY.md)).
 
 ## Setup
 

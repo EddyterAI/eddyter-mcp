@@ -35,7 +35,7 @@ order to:
 
 Your license key and the requests above are processed by Eddyter's backend
 (`api.eddyter.com`). Data handling there is governed by Eddyter's main privacy
-policy: <https://www.eddyter.com/privacy>.
+policy: <https://eddyter.com/privacy-policy>.
 
 ## Your control
 
