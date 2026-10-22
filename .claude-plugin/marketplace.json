@@ -5,14 +5,14 @@
     "url": "https://github.com/EddyterAI"
   },
   "metadata": {
-    "description": "Eddyter — AI-native rich text editor. Tools to configure it from Claude.",
-    "version": "0.1.6"
+    "description": "Eddyter, the AI rich text editor. Set it up and manage it from Claude.",
+    "version": "0.1.7"
   },
   "plugins": [
     {
       "name": "eddyter",
       "source": "./plugin",
-      "description": "Configure the Eddyter editor from Claude: read license status / usage / feature config, generate SSR-safe integration code, and change live editor features by chat (opt-in)."
+      "description": "Manage your Eddyter AI rich text editor from Claude. Add it to a React, Next.js, Vite or Remix app in minutes, check your license, plan and credits, and turn editor features on or off live, with no redeploy."
     }
   ]
 }
