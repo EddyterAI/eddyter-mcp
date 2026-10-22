@@ -5,25 +5,27 @@
 [![MCP](https://img.shields.io/badge/MCP-compatible-8A2BE2)](https://modelcontextprotocol.io)
 [![Claude Code plugin](https://img.shields.io/badge/Claude_Code-plugin-d97757)](https://github.com/EddyterAI/eddyter-mcp)
 
-> **Set up and configure the [Eddyter](https://www.eddyter.com) editor by talking to your AI agent** —
-> the admin-side surface for Claude, Cursor, and other MCP tools.
+> **Set up and manage the [Eddyter](https://www.eddyter.com) AI rich text editor by talking to your AI agent** —
+> for Claude, Cursor, Codex and other MCP tools.
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server that lets AI
-tools check an Eddyter license key's status and usage, generate SSR-safe
-integration code, and **change live editor features by chat** — with no redeploy.
+tools add Eddyter to a React, Next.js, Vite or Remix app, check an Eddyter license
+key's status and credit usage, and **turn live editor features on or off by chat** —
+with no redeploy.
 
 This is the **admin-side** surface: the account owner connects it using a license
 key. Changes apply to every end-user of the editor that uses that key, because the
-config lives server-side on the key. The dashboard AI assistant ships next.
+config lives server-side on the key.
 
 <!-- TODO(launch): replace with a ≤5s GIF of an agent calling update_config -->
 <!-- ![demo](docs/demo.gif) -->
 
 ## Tools
 
-Reads are always available. The config-changing tool is **opt-in**
-(`EDDYTER_ALLOW_WRITES=true`) so a pasted key can't change the live editor unless
-the admin allows it.
+Reads are always available. `update_config` is enabled on the hosted server
+(OAuth sign-in) and always clamped to your plan. When you run the server locally
+with a pasted key (`npx eddyter-mcp`), it is **opt-in** (`EDDYTER_ALLOW_WRITES=true`)
+so a pasted key can't change the live editor unless the admin allows it.
 
 | Tool | Mode | What it does |
 | --- | --- | --- |
@@ -31,7 +33,7 @@ the admin allows it.
 | `get_config` | read | Which editor features are enabled, off-but-allowed, or locked by plan. |
 | `get_usage` | read | Credits remaining, usage this period, days until reset. |
 | `get_integration_snippet` | read | SSR-safe copy-paste setup code per framework. |
-| `update_config` | **write** (opt-in) | Patch the editor's features (e.g. turn AI chat off). Clamped to the plan; live with no redeploy. |
+| `update_config` | **write** | Patch the editor's features (e.g. turn AI chat off). Clamped to the plan; live with no redeploy. |
 
 Backend: reads ride the public `/api/license/validate`; `get_usage` and
 `update_config` use the X-API-Key endpoints `GET /api/license/usage` and
@@ -54,7 +56,8 @@ Each OAuth token is scoped to one Eddyter license key. Reads are always availabl
 
 ## What this plugin connects to and sends
 
-The plugin contains one remote MCP server and no local code, hooks or scripts.
+The plugin contains one remote MCP server and two skills (plain-text instructions
+for Claude). It has no local code, hooks or scripts.
 
 - **Connects to:** `https://mcp.eddyter.com/mcp` (Eddyter's hosted MCP server), over HTTPS with OAuth 2.0 sign-in.
 - **The server then calls:** Eddyter's API at `https://api.eddyter.com` to read your license status, usage and editor configuration, and (for `update_config`) to change that configuration.
@@ -63,6 +66,17 @@ The plugin contains one remote MCP server and no local code, hooks or scripts.
 - **Writes:** only `update_config` changes anything, and every change is clamped to your plan's limits.
 
 Privacy policy: <https://eddyter.com/privacy-policy> · Terms: <https://eddyter.com/terms> (summary in [PRIVACY.md](./PRIVACY.md)).
+
+## Skills (Claude Code / Cowork plugin)
+
+The plugin ships two skills that guide Claude through the common jobs:
+
+| Skill | Use it to |
+| --- | --- |
+| `setup-eddyter` | Add Eddyter to a React, Next.js, Vite or Remix project: detect the framework, install the package, write the client-only editor component and add the env variable. |
+| `manage-eddyter` | Check license, plan and credits, and safely turn editor features on or off. |
+
+Try: *"Add the Eddyter editor to my Next.js app"* or *"Turn off AI chat in my editor."*
 
 ## Setup
 
