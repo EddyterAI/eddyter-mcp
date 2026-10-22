@@ -69,4 +69,6 @@ The plugin contains one remote MCP server and two skills (plain-text instruction
 
 ## Support
 
-Open an issue at <https://github.com/EddyterAI/eddyter-mcp/issues> or visit <https://www.eddyter.com/user/support>.
+- Docs: <https://eddyter.com/docs>
+- Help: <https://www.eddyter.com/user/support>
+- Bugs and requests: <https://github.com/EddyterAI/eddyter-mcp/issues>
