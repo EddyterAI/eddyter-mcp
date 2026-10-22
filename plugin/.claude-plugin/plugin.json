@@ -7,6 +7,7 @@
     "url": "https://github.com/EddyterAI"
   },
   "homepage": "https://www.eddyter.com",
+  "documentationUrl": "https://eddyter.com/docs",
   "repository": "https://github.com/EddyterAI/eddyter-mcp",
   "license": "MIT",
   "keywords": [
