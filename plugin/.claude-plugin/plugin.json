@@ -1,7 +1,7 @@
 {
   "name": "eddyter",
-  "version": "0.1.6",
-  "description": "Set up and configure the Eddyter editor from Claude \u2014 check license status, usage and feature config, generate SSR-safe integration code, and change live editor features by chat.",
+  "version": "0.1.7",
+  "description": "Manage your Eddyter AI rich text editor from Claude. Add it to a React, Next.js, Vite or Remix app in minutes, check your license, plan and credits, and turn editor features on or off live, with no redeploy.",
   "author": {
     "name": "EddyterAI",
     "url": "https://github.com/EddyterAI"
@@ -10,11 +10,18 @@
   "repository": "https://github.com/EddyterAI/eddyter-mcp",
   "license": "MIT",
   "keywords": [
-    "mcp",
     "eddyter",
     "rich-text-editor",
-    "editor",
-    "ai"
+    "wysiwyg",
+    "text-editor",
+    "content-editor",
+    "ai-editor",
+    "lexical",
+    "react",
+    "nextjs",
+    "vite",
+    "remix",
+    "mcp"
   ],
   "privacyPolicyUrl": "https://eddyter.com/privacy-policy",
   "termsOfServiceUrl": "https://eddyter.com/terms"
