@@ -29,7 +29,7 @@ If a project is open, read `package.json` and the folder layout:
 
 If both `app/` and `pages/` exist, use `nextjs-app` unless the user says otherwise.
 
-If the project is not React-based (Vue, Svelte, Angular, plain HTML), tell the user this guided setup covers React, Next.js, Vite and Remix, and point them to the Eddyter docs at https://www.eddyter.com for their framework.
+If the project is not React-based (Vue, Svelte, Angular, plain HTML), tell the user this guided setup covers React, Next.js, Vite and Remix, and point them to the Eddyter docs at https://eddyter.com/docs for their framework.
 
 If no project is open (for example, in a chat without file access), ask which framework they use.
 
