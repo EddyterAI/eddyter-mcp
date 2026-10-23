@@ -16,7 +16,10 @@
 import express, { type Request, type Response } from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { mcpAuthRouter } from "@modelcontextprotocol/sdk/server/auth/router.js";
+import {
+  mcpAuthRouter,
+  getOAuthProtectedResourceMetadataUrl,
+} from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 
@@ -29,6 +32,9 @@ import { verifyAssertion } from "./oauth/assertion.js";
 const baseConfig = loadConfig();
 const PORT = Number(process.env.PORT ?? 8789);
 const ISSUER = process.env.MCP_ISSUER_URL ?? "https://mcp.eddyter.com";
+// The protected resource is the /mcp endpoint itself, not the bare host — clients
+// look up its metadata at /.well-known/oauth-protected-resource/mcp (RFC 9728).
+const MCP_URL = new URL("/mcp", ISSUER);
 
 // Shared secret used to verify the login assertion minted by the Eddyter web app.
 // Required in prod (the callback fails closed without it); unused when
@@ -44,6 +50,10 @@ const provider = new EddyterOAuthProvider({
 });
 
 const app = express();
+// Behind nginx: without this every request looks like it comes from the proxy, so
+// the SDK's per-IP rate limits (e.g. 20 registrations/hour) are shared by ALL users
+// and connecting starts failing with 429 once a handful of people have tried.
+app.set("trust proxy", 1);
 app.use(express.json());
 
 app.get("/health", (_req, res) =>
@@ -62,6 +72,7 @@ app.use(
   mcpAuthRouter({
     provider,
     issuerUrl: new URL(ISSUER),
+    resourceServerUrl: MCP_URL,
     scopesSupported: ["eddyter:read", "eddyter:write"],
     resourceName: "Eddyter",
   }),
@@ -109,7 +120,12 @@ app.get("/eddyter/callback", (req: Request, res: Response) => {
 });
 
 // Protected MCP endpoint — bearer token required; key comes from the token.
-const bearer = requireBearerAuth({ verifier: provider });
+// resourceMetadataUrl puts `resource_metadata="..."` in the 401's WWW-Authenticate
+// header, which is how MCP clients discover where to start the OAuth flow.
+const bearer = requireBearerAuth({
+  verifier: provider,
+  resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(MCP_URL),
+});
 
 app.post("/mcp", bearer, async (req: Request, res: Response) => {
   const auth = (req as Request & { auth?: AuthInfo }).auth;
