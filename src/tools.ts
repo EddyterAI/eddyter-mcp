@@ -49,8 +49,7 @@ export function registerEddyterTools(
       title: "Verify License Status",
       description:
         "Check whether an Eddyter license key is valid and active: plan name, paid/free, " +
-        "expiry, subscription status, BYOK mode, and any payment warning. Use this first " +
-        "to confirm the key works before configuring anything.",
+        "expiry, subscription status, BYOK mode, and any payment warning.",
       inputSchema: licenseKeyArg,
       annotations: { title: "Verify License Status", readOnlyHint: true, openWorldHint: true },
     },
@@ -90,7 +89,7 @@ export function registerEddyterTools(
       description:
         "Show the editor feature configuration for a license key: which features are " +
         "enabled, which are off but allowed by the plan, and which are locked behind a " +
-        "higher plan. Use before changing config so you know what's available.",
+        "higher plan.",
       inputSchema: licenseKeyArg,
       annotations: { title: "Get Editor Config", readOnlyHint: true, openWorldHint: true },
     },
@@ -170,7 +169,7 @@ export function registerEddyterTools(
           "Change the editor's feature configuration for a license key (e.g. turn AI chat " +
           "or tables off/on). Send only the features you want to change — a partial patch. " +
           "Changes are clamped to the plan (cannot enable locked features) and go live for " +
-          "all users of the key with no redeploy. Call get_config first to see current state.",
+          "all users of the key with no redeploy.",
         inputSchema: {
           ...licenseKeyArg,
           customizations: z
