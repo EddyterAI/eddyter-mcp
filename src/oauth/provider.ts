@@ -35,6 +35,14 @@ import { JsonFileState } from "./store.js";
 
 const token = () => randomBytes(32).toString("hex");
 const nowMs = () => Date.now();
+/** Hosts whose OAuth callbacks may have a lost registration re-created (recoverClient). */
+const RECOVERABLE_REDIRECT_HOSTS = [
+  "chatgpt.com",
+  "chat.openai.com",
+  "platform.openai.com",
+  "claude.ai",
+  "claude.com",
+];
 /** Tokens are looked up by hash so the persisted file never holds usable tokens. */
 const hash = (t: string) => createHash("sha256").update(t).digest("hex");
 
@@ -117,6 +125,43 @@ export class EddyterOAuthProvider implements OAuthServerProvider {
     );
     this.refreshTokens = new Map(Object.entries(saved.refreshTokens ?? {}));
     this.clientsStore = new PersistedClientsStore(this.clients, () => this.persist());
+  }
+
+  /**
+   * Re-create a client registration that was lost (e.g. before persistence existed,
+   * or if the store file is wiped). MCP clients cache their client_id and some —
+   * like the OpenAI plugin portal — offer no way to re-register, so they would be
+   * stuck on "Invalid client_id" forever.
+   *
+   * Only IDs in our own format with an HTTPS redirect to a known MCP client host
+   * are recovered. This grants nothing beyond what open DCR (/register) already
+   * allows anyone, and PKCE still protects the code exchange.
+   */
+  recoverClient(clientId: string, redirectUri: string): void {
+    if (!/^[0-9a-f]{64}$/.test(clientId) || this.clients.has(clientId)) return;
+    let url: URL;
+    try {
+      url = new URL(redirectUri);
+    } catch {
+      return;
+    }
+    const trusted = RECOVERABLE_REDIRECT_HOSTS.some(
+      (h) => url.hostname === h || url.hostname.endsWith(`.${h}`),
+    );
+    if (url.protocol !== "https:" || !trusted) return;
+
+    this.clients.set(clientId, {
+      client_id: clientId,
+      client_id_issued_at: Math.floor(nowMs() / 1000),
+      client_name: "Recovered client",
+      redirect_uris: [redirectUri],
+      token_endpoint_auth_method: "none",
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
+    });
+    this.persist();
+    // eslint-disable-next-line no-console
+    console.log(`[eddyter-mcp:oauth] recovered client registration for ${url.hostname}`);
   }
 
   private persist(): void {
