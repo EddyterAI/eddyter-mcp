@@ -11,13 +11,15 @@
  *   1. authorize(): in prod, redirect the user to Eddyter login (Supabase) and
  *      let the /eddyter/callback route resolve their license key. In dev, set
  *      OAUTH_DEV_LICENSE_KEY to skip login so the full handshake is testable.
- *   2. the stores below are in-memory — replace with Redis for multi-instance prod.
+ *   2. clients and tokens persist to a JSON file (see store.ts) so restarts don't
+ *      invalidate registrations — replace with Redis for multi-instance prod.
+ *      Tokens are stored as SHA-256 hashes, never in plaintext.
  *
  * Identity model: an access token is bound to ONE Eddyter license key, surfaced
  * to tools via AuthInfo.extra.licenseKey (see http-oauth.ts).
  */
 
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import type { Response } from "express";
 import type {
   OAuthServerProvider,
@@ -29,9 +31,12 @@ import type {
   OAuthTokens,
 } from "@modelcontextprotocol/sdk/shared/auth.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import { JsonFileState } from "./store.js";
 
 const token = () => randomBytes(32).toString("hex");
 const nowMs = () => Date.now();
+/** Tokens are looked up by hash so the persisted file never holds usable tokens. */
+const hash = (t: string) => createHash("sha256").update(t).digest("hex");
 
 interface PendingCode {
   clientId: string;
@@ -54,9 +59,18 @@ interface RefreshRec {
   licenseKey: string;
 }
 
-/** In-memory client registry (DCR). INTEGRATION: swap for Redis in prod. */
-class InMemoryClientsStore implements OAuthRegisteredClientsStore {
-  private clients = new Map<string, OAuthClientInformationFull>();
+interface PersistedState {
+  clients: Record<string, OAuthClientInformationFull>;
+  accessTokens: Record<string, AccessRec>;
+  refreshTokens: Record<string, RefreshRec>;
+}
+
+/** Client registry (DCR), persisted through the provider's onChange callback. */
+class PersistedClientsStore implements OAuthRegisteredClientsStore {
+  constructor(
+    private readonly clients: Map<string, OAuthClientInformationFull>,
+    private readonly onChange: () => void,
+  ) {}
   async getClient(clientId: string) {
     return this.clients.get(clientId);
   }
@@ -69,6 +83,7 @@ class InMemoryClientsStore implements OAuthRegisteredClientsStore {
       client_id_issued_at: Math.floor(nowMs() / 1000),
     };
     this.clients.set(full.client_id, full);
+    this.onChange();
     return full;
   }
 }
@@ -81,15 +96,39 @@ export interface EddyterOAuthConfig {
   accessTtlSeconds: number;
   /** Dev-only: skip Eddyter login and bind every auth to this key. */
   devLicenseKey?: string;
+  /** JSON file for clients + tokens; omit to keep everything in memory only. */
+  storePath?: string;
 }
 
 export class EddyterOAuthProvider implements OAuthServerProvider {
-  readonly clientsStore = new InMemoryClientsStore();
-  private codes = new Map<string, PendingCode>();
-  private accessTokens = new Map<string, AccessRec>();
-  private refreshTokens = new Map<string, RefreshRec>();
+  readonly clientsStore: OAuthRegisteredClientsStore;
+  private codes = new Map<string, PendingCode>(); // short-lived, not persisted
+  private clients: Map<string, OAuthClientInformationFull>;
+  private accessTokens: Map<string, AccessRec>; // keyed by hash(token)
+  private refreshTokens: Map<string, RefreshRec>; // keyed by hash(token)
+  private readonly state: JsonFileState<PersistedState>;
 
-  constructor(private readonly config: EddyterOAuthConfig) {}
+  constructor(private readonly config: EddyterOAuthConfig) {
+    this.state = new JsonFileState<PersistedState>(config.storePath);
+    const saved = this.state.load();
+    this.clients = new Map(Object.entries(saved.clients ?? {}));
+    this.accessTokens = new Map(
+      Object.entries(saved.accessTokens ?? {}).filter(([, r]) => r.expiresAt > nowMs()),
+    );
+    this.refreshTokens = new Map(Object.entries(saved.refreshTokens ?? {}));
+    this.clientsStore = new PersistedClientsStore(this.clients, () => this.persist());
+  }
+
+  private persist(): void {
+    const now = nowMs();
+    this.state.save({
+      clients: Object.fromEntries(this.clients),
+      accessTokens: Object.fromEntries(
+        [...this.accessTokens].filter(([, r]) => r.expiresAt > now),
+      ),
+      refreshTokens: Object.fromEntries(this.refreshTokens),
+    });
+  }
 
   async authorize(
     client: OAuthClientInformationFull,
@@ -180,7 +219,7 @@ export class EddyterOAuthProvider implements OAuthServerProvider {
     refreshToken: string,
     scopes?: string[],
   ): Promise<OAuthTokens> {
-    const rec = this.refreshTokens.get(refreshToken);
+    const rec = this.refreshTokens.get(hash(refreshToken));
     if (!rec || rec.clientId !== client.client_id) {
       throw new Error("invalid_grant");
     }
@@ -188,10 +227,11 @@ export class EddyterOAuthProvider implements OAuthServerProvider {
   }
 
   async verifyAccessToken(accessToken: string): Promise<AuthInfo> {
-    const rec = this.accessTokens.get(accessToken);
+    const rec = this.accessTokens.get(hash(accessToken));
     if (!rec) throw new Error("invalid_token");
     if (rec.expiresAt < nowMs()) {
-      this.accessTokens.delete(accessToken);
+      // Expired records are dropped from the file on the next persist().
+      this.accessTokens.delete(hash(accessToken));
       throw new Error("invalid_token: expired");
     }
     return {
@@ -207,13 +247,14 @@ export class EddyterOAuthProvider implements OAuthServerProvider {
   private issueTokens(clientId: string, scopes: string[], licenseKey: string): OAuthTokens {
     const access = token();
     const refresh = token();
-    this.accessTokens.set(access, {
+    this.accessTokens.set(hash(access), {
       clientId,
       scopes,
       licenseKey,
       expiresAt: nowMs() + this.config.accessTtlSeconds * 1000,
     });
-    this.refreshTokens.set(refresh, { clientId, scopes, licenseKey });
+    this.refreshTokens.set(hash(refresh), { clientId, scopes, licenseKey });
+    this.persist();
     return {
       access_token: access,
       token_type: "bearer",
