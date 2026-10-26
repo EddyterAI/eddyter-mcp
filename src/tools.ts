@@ -51,7 +51,7 @@ export function registerEddyterTools(
         "Check whether an Eddyter license key is valid and active: plan name, paid/free, " +
         "expiry, subscription status, BYOK mode, and any payment warning.",
       inputSchema: licenseKeyArg,
-      annotations: { title: "Verify License Status", readOnlyHint: true, openWorldHint: true },
+      annotations: { title: "Verify License Status", readOnlyHint: true, destructiveHint: false, openWorldHint: true },
     },
     async ({ licenseKey }) => {
       try {
@@ -91,7 +91,7 @@ export function registerEddyterTools(
         "enabled, which are off but allowed by the plan, and which are locked behind a " +
         "higher plan.",
       inputSchema: licenseKeyArg,
-      annotations: { title: "Get Editor Config", readOnlyHint: true, openWorldHint: true },
+      annotations: { title: "Get Editor Config", readOnlyHint: true, destructiveHint: false, openWorldHint: true },
     },
     async ({ licenseKey }) => {
       try {
@@ -117,7 +117,7 @@ export function registerEddyterTools(
         "credits used this period, operation counts, and days until reset. Use to answer " +
         "'am I about to hit my limit?'.",
       inputSchema: licenseKeyArg,
-      annotations: { title: "Get Usage & Credits", readOnlyHint: true, openWorldHint: true },
+      annotations: { title: "Get Usage & Credits", readOnlyHint: true, destructiveHint: false, openWorldHint: true },
     },
     async ({ licenseKey }) => {
       try {
@@ -152,7 +152,7 @@ export function registerEddyterTools(
           .enum(["react", "nextjs-app", "nextjs-pages", "vite", "remix"])
           .describe("Target framework. Use 'nextjs-app' for App Router, 'nextjs-pages' for Pages Router."),
       },
-      annotations: { title: "Get Integration Snippet", readOnlyHint: true, openWorldHint: false },
+      annotations: { title: "Get Integration Snippet", readOnlyHint: true, destructiveHint: false, openWorldHint: false },
     },
     async ({ framework }) => {
       const snippet = getIntegrationSnippet(framework as Framework);
