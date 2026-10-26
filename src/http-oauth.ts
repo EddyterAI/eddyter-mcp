@@ -13,6 +13,7 @@
  *       OAUTH_DEV_LICENSE_KEY=eddyt_... pnpm start:oauth      (dev shortcut)
  */
 
+import { fileURLToPath } from "node:url";
 import express, { type Request, type Response } from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -47,6 +48,11 @@ const provider = new EddyterOAuthProvider({
     process.env.EDDYTER_LOGIN_URL ?? "https://www.eddyter.com/oauth/mcp-login",
   accessTtlSeconds: Number(process.env.OAUTH_ACCESS_TTL ?? 3600),
   devLicenseKey: process.env.OAUTH_DEV_LICENSE_KEY?.trim() || undefined,
+  // Resolved from this file (dist/) rather than the cwd, so it lands in the
+  // project's data/ folder however pm2 was started.
+  storePath:
+    process.env.OAUTH_STORE_PATH ??
+    fileURLToPath(new URL("../data/oauth-store.json", import.meta.url)),
 });
 
 const app = express();
