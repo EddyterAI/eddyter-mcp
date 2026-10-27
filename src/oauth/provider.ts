@@ -32,6 +32,7 @@ import type {
 } from "@modelcontextprotocol/sdk/shared/auth.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { JsonFileState } from "./store.js";
+import { detectSignupSource } from "./source.js";
 
 const token = () => randomBytes(32).toString("hex");
 const nowMs = () => Date.now();
@@ -43,6 +44,16 @@ const RECOVERABLE_REDIRECT_HOSTS = [
   "claude.ai",
   "claude.com",
 ];
+/** Origin + path of a redirect URI, without the query string, for logs. */
+const redirectForLog = (uri: string) => {
+  try {
+    const u = new URL(uri);
+    // Not u.origin: it is "null" for custom schemes like cursor://.
+    return `${u.protocol}//${u.host}${u.pathname}`;
+  } catch {
+    return "(unparseable)";
+  }
+};
 /** Tokens are looked up by hash so the persisted file never holds usable tokens. */
 const hash = (t: string) => createHash("sha256").update(t).digest("hex");
 
@@ -204,6 +215,15 @@ export class EddyterOAuthProvider implements OAuthServerProvider {
     const url = new URL(this.config.eddyterLoginUrl);
     url.searchParams.set("mcp_code", code);
     url.searchParams.set("callback", `${this.config.issuer}/eddyter/callback`);
+    // Signup attribution (see oauth/source.ts); the website ignores it for existing users.
+    const source = detectSignupSource(client.client_name, params.redirectUri);
+    url.searchParams.set("source", source);
+    // Temporary: remove once the source rules are confirmed against real sign-ins.
+    // eslint-disable-next-line no-console
+    console.log(
+      `[eddyter-mcp:oauth] sign-in source=${source} client_name=${JSON.stringify(client.client_name ?? null)} ` +
+        `redirect=${redirectForLog(params.redirectUri)}`,
+    );
     res.redirect(url.toString());
   }
 
