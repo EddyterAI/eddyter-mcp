@@ -35,6 +35,25 @@ function errorResult(message: string) {
 }
 
 /**
+ * Log a tool failure, then turn it into an error result (unexpected errors are
+ * rethrown as before). Logs go to stderr so the stdio transport's stdout stays
+ * clean. The key itself is never logged — only whether the caller passed its own
+ * `licenseKey` instead of the configured/session key.
+ */
+function fail(tool: string, licenseKey: string | undefined, err: unknown) {
+  const e = err instanceof EddyterError ? err : undefined;
+  const message = err instanceof Error ? err.message : String(err);
+  // eslint-disable-next-line no-console
+  console.error(
+    `[eddyter-mcp] tool error tool=${tool} explicitKey=${Boolean(licenseKey?.trim())} ` +
+      `status=${e?.status ?? "-"} code=${e?.code ?? "-"} message=${JSON.stringify(message)}`,
+  );
+  if (e) return errorResult(e.message);
+  if (typeof err === "string") return errorResult(err);
+  throw err;
+}
+
+/**
  * Register the Eddyter tools on a server.
  * @param allowWrites  expose the mutating `update_config` tool
  */
@@ -57,7 +76,7 @@ export function registerEddyterTools(
       try {
         const key = client.resolveLicenseKey(licenseKey);
         const { data } = await client.validate(key);
-        if (!data) return errorResult("No data returned from Eddyter.");
+        if (!data) return fail("verify_status", licenseKey, "No data returned from Eddyter.");
 
         const expires = new Date(data.expiresAt);
         const daysLeft = Math.ceil(
@@ -76,8 +95,7 @@ export function registerEddyterTools(
         }
         return textResult(lines.join("\n"));
       } catch (err) {
-        if (err instanceof EddyterError) return errorResult(err.message);
-        throw err;
+        return fail("verify_status", licenseKey, err);
       }
     },
   );
@@ -97,13 +115,12 @@ export function registerEddyterTools(
       try {
         const key = client.resolveLicenseKey(licenseKey);
         const { data } = await client.validate(key);
-        if (!data) return errorResult("No data returned from Eddyter.");
+        if (!data) return fail("get_config", licenseKey, "No data returned from Eddyter.");
         const summaries = summarizeFeatures(data.customizations, data.planCustomizations);
         const header = `Editor config for "${data.planName}" plan key:\n`;
         return textResult(header + "\n" + renderFeatureSummary(summaries));
       } catch (err) {
-        if (err instanceof EddyterError) return errorResult(err.message);
-        throw err;
+        return fail("get_config", licenseKey, err);
       }
     },
   );
@@ -133,8 +150,7 @@ export function registerEddyterTools(
         ];
         return textResult(lines.join("\n"));
       } catch (err) {
-        if (err instanceof EddyterError) return errorResult(err.message);
-        throw err;
+        return fail("get_usage", licenseKey, err);
       }
     },
   );
@@ -198,8 +214,7 @@ export function registerEddyterTools(
               renderFeatureSummary(summaries),
           );
         } catch (err) {
-          if (err instanceof EddyterError) return errorResult(err.message);
-          throw err;
+          return fail("update_config", licenseKey, err);
         }
       },
     );
