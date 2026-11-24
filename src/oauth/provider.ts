@@ -31,6 +31,9 @@ import type {
   OAuthTokens,
 } from "@modelcontextprotocol/sdk/shared/auth.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+// OAuth errors, not plain Error: the SDK turns a plain Error into a 500, and clients
+// only re-authenticate on a proper 400 invalid_grant / 401 invalid_token.
+import { InvalidGrantError, InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import { JsonFileState } from "./store.js";
 import { detectSignupSource } from "./source.js";
 
@@ -44,6 +47,12 @@ const RECOVERABLE_REDIRECT_HOSTS = [
   "claude.ai",
   "claude.com",
 ];
+/**
+ * Recovery runs before the SDK's rate-limited /authorize handler and writes to the
+ * store, so it gets its own server-wide budget: lost registrations are rare, and
+ * without a cap anyone could fill the store with made-up client IDs.
+ */
+const RECOVERIES_PER_HOUR = 20;
 /** Origin + path of a redirect URI, without the query string, for logs. */
 const redirectForLog = (uri: string) => {
   try {
@@ -126,6 +135,7 @@ export class EddyterOAuthProvider implements OAuthServerProvider {
   private accessTokens: Map<string, AccessRec>; // keyed by hash(token)
   private refreshTokens: Map<string, RefreshRec>; // keyed by hash(token)
   private readonly state: JsonFileState<PersistedState>;
+  private recoveries: number[] = []; // timestamps of recoverClient() registrations in the last hour
 
   constructor(private readonly config: EddyterOAuthConfig) {
     this.state = new JsonFileState<PersistedState>(config.storePath);
@@ -160,6 +170,14 @@ export class EddyterOAuthProvider implements OAuthServerProvider {
       (h) => url.hostname === h || url.hostname.endsWith(`.${h}`),
     );
     if (url.protocol !== "https:" || !trusted) return;
+    const hourAgo = nowMs() - 3600_000;
+    this.recoveries = this.recoveries.filter((t) => t > hourAgo);
+    if (this.recoveries.length >= RECOVERIES_PER_HOUR) {
+      // eslint-disable-next-line no-console
+      console.warn(`[eddyter-mcp:oauth] client recovery limit reached; not recovering for ${url.hostname}`);
+      return;
+    }
+    this.recoveries.push(nowMs());
 
     this.clients.set(clientId, {
       client_id: clientId,
@@ -233,7 +251,7 @@ export class EddyterOAuthProvider implements OAuthServerProvider {
     licenseKey: string,
   ): { redirectUri: string; state?: string } {
     const rec = this.codes.get(code);
-    if (!rec) throw new Error("Unknown or expired authorization code");
+    if (!rec) throw new InvalidGrantError("Unknown or expired authorization code");
     rec.licenseKey = licenseKey;
     return { redirectUri: rec.redirectUri, state: rec.state };
   }
@@ -251,7 +269,7 @@ export class EddyterOAuthProvider implements OAuthServerProvider {
     authorizationCode: string,
   ): Promise<string> {
     const rec = this.codes.get(authorizationCode);
-    if (!rec) throw new Error("invalid_grant: unknown authorization code");
+    if (!rec) throw new InvalidGrantError("unknown authorization code");
     return rec.codeChallenge;
   }
 
@@ -263,17 +281,17 @@ export class EddyterOAuthProvider implements OAuthServerProvider {
   ): Promise<OAuthTokens> {
     const rec = this.codes.get(authorizationCode);
     if (!rec || rec.clientId !== client.client_id) {
-      throw new Error("invalid_grant");
+      throw new InvalidGrantError("unknown or reused authorization code");
     }
     if (rec.expiresAt < nowMs()) {
       this.codes.delete(authorizationCode);
-      throw new Error("invalid_grant: authorization code expired");
+      throw new InvalidGrantError("authorization code expired");
     }
     if (redirectUri && redirectUri !== rec.redirectUri) {
-      throw new Error("invalid_grant: redirect_uri mismatch");
+      throw new InvalidGrantError("redirect_uri mismatch");
     }
     if (!rec.licenseKey) {
-      throw new Error("authorization_pending: login not completed");
+      throw new InvalidGrantError("authorization_pending: login not completed");
     }
     this.codes.delete(authorizationCode);
     return this.issueTokens(client.client_id, rec.scopes, rec.licenseKey);
@@ -286,18 +304,21 @@ export class EddyterOAuthProvider implements OAuthServerProvider {
   ): Promise<OAuthTokens> {
     const rec = this.refreshTokens.get(hash(refreshToken));
     if (!rec || rec.clientId !== client.client_id) {
-      throw new Error("invalid_grant");
+      throw new InvalidGrantError("unknown or reused token");
     }
+    // Rotate: each refresh token works once (OAuth 2.1 for public clients). Without
+    // this every hourly refresh left one more live token in the persisted store.
+    this.refreshTokens.delete(hash(refreshToken));
     return this.issueTokens(client.client_id, scopes ?? rec.scopes, rec.licenseKey);
   }
 
   async verifyAccessToken(accessToken: string): Promise<AuthInfo> {
     const rec = this.accessTokens.get(hash(accessToken));
-    if (!rec) throw new Error("invalid_token");
+    if (!rec) throw new InvalidTokenError("unknown token");
     if (rec.expiresAt < nowMs()) {
       // Expired records are dropped from the file on the next persist().
       this.accessTokens.delete(hash(accessToken));
-      throw new Error("invalid_token: expired");
+      throw new InvalidTokenError("expired");
     }
     return {
       token: accessToken,
