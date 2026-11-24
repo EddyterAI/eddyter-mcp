@@ -90,7 +90,11 @@ app.get("/favicon.ico", (_req, res) =>
 // Clients cache their client_id; if its registration was lost, re-create it before
 // the SDK's authorize handler rejects it (see provider.recoverClient for the limits).
 app.get("/authorize", (req, _res, next) => {
-  provider.recoverClient(String(req.query.client_id ?? ""), String(req.query.redirect_uri ?? ""));
+  provider.recoverClient(
+    String(req.query.client_id ?? ""),
+    String(req.query.redirect_uri ?? ""),
+    req.ip ?? "unknown",
+  );
   next();
 });
 
