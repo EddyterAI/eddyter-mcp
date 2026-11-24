@@ -49,10 +49,12 @@ const RECOVERABLE_REDIRECT_HOSTS = [
 ];
 /**
  * Recovery runs before the SDK's rate-limited /authorize handler and writes to the
- * store, so it gets its own server-wide budget: lost registrations are rare, and
- * without a cap anyone could fill the store with made-up client IDs.
+ * store, so it has its own limits: lost registrations are rare, and without a cap
+ * anyone could fill the store with made-up client IDs. The per-address limit keeps
+ * one caller from spending the server-wide budget that real users need.
  */
-const RECOVERIES_PER_HOUR = 20;
+const RECOVERIES_PER_HOUR = 100;
+const RECOVERIES_PER_IP_PER_HOUR = 3;
 /** Origin + path of a redirect URI, without the query string, for logs. */
 const redirectForLog = (uri: string) => {
   try {
@@ -136,6 +138,7 @@ export class EddyterOAuthProvider implements OAuthServerProvider {
   private refreshTokens: Map<string, RefreshRec>; // keyed by hash(token)
   private readonly state: JsonFileState<PersistedState>;
   private recoveries: number[] = []; // timestamps of recoverClient() registrations in the last hour
+  private recoveriesByIp = new Map<string, number[]>();
 
   constructor(private readonly config: EddyterOAuthConfig) {
     this.state = new JsonFileState<PersistedState>(config.storePath);
@@ -158,7 +161,7 @@ export class EddyterOAuthProvider implements OAuthServerProvider {
    * are recovered. This grants nothing beyond what open DCR (/register) already
    * allows anyone, and PKCE still protects the code exchange.
    */
-  recoverClient(clientId: string, redirectUri: string): void {
+  recoverClient(clientId: string, redirectUri: string, ip: string): void {
     if (!/^[0-9a-f]{64}$/.test(clientId) || this.clients.has(clientId)) return;
     let url: URL;
     try {
@@ -170,14 +173,21 @@ export class EddyterOAuthProvider implements OAuthServerProvider {
       (h) => url.hostname === h || url.hostname.endsWith(`.${h}`),
     );
     if (url.protocol !== "https:" || !trusted) return;
-    const hourAgo = nowMs() - 3600_000;
+    const now = nowMs();
+    const hourAgo = now - 3600_000;
     this.recoveries = this.recoveries.filter((t) => t > hourAgo);
-    if (this.recoveries.length >= RECOVERIES_PER_HOUR) {
+    if (this.recoveriesByIp.size > 10_000) {
+      for (const [k, ts] of this.recoveriesByIp) if (!ts.some((t) => t > hourAgo)) this.recoveriesByIp.delete(k);
+    }
+    const mine = (this.recoveriesByIp.get(ip) ?? []).filter((t) => t > hourAgo);
+    if (mine.length >= RECOVERIES_PER_IP_PER_HOUR || this.recoveries.length >= RECOVERIES_PER_HOUR) {
       // eslint-disable-next-line no-console
       console.warn(`[eddyter-mcp:oauth] client recovery limit reached; not recovering for ${url.hostname}`);
       return;
     }
-    this.recoveries.push(nowMs());
+    mine.push(now);
+    this.recoveriesByIp.set(ip, mine);
+    this.recoveries.push(now);
 
     this.clients.set(clientId, {
       client_id: clientId,
