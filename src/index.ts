@@ -12,12 +12,15 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 
 import { loadConfig } from "./config.js";
 import { EddyterClient } from "./client.js";
-import { registerEddyterTools } from "./tools.js";
+import { registerEddyterTools, SERVER_INSTRUCTIONS } from "./tools.js";
 
 const config = loadConfig();
 const client = new EddyterClient(config);
 
-const server = new McpServer({ name: "eddyter", version: "0.1.0" });
+const server = new McpServer(
+  { name: "eddyter", version: "0.1.0" },
+  { instructions: SERVER_INSTRUCTIONS },
+);
 registerEddyterTools(server, client, config.allowWrites);
 
 async function main() {

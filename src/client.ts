@@ -5,7 +5,7 @@
  * the same one the editor itself calls on mount. No new backend surface.
  */
 
-import type { EddyterConfig } from "./config.js";
+import { liveEditorUrl, type EddyterConfig } from "./config.js";
 
 /** Subset of the /api/license/validate response we rely on. */
 export interface ValidateResponse {
@@ -66,6 +66,30 @@ export class EddyterClient {
       );
     }
     return key;
+  }
+
+  /** Link to the live editor playground for a tool result (see config.liveEditorUrl). */
+  editorLink(tool: string): string {
+    return liveEditorUrl(this.config.appUrl, tool);
+  }
+
+  /**
+   * POST /api/license/mcp-event — record a tool call for analytics. Fire-and-forget:
+   * never awaited by tools, 2s timeout, every error swallowed. It does not count as
+   * an editor load (unlike validate with trackLoad).
+   */
+  recordToolCall(licenseKey: string, tool: string, client?: string): void {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2000);
+    fetch(`${this.config.baseUrl}/api/license/mcp-event`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-API-Key": licenseKey },
+      body: JSON.stringify(client ? { tool, client } : { tool }),
+      signal: controller.signal,
+    })
+      .then((res) => res.body?.cancel())
+      .catch(() => {})
+      .finally(() => clearTimeout(timer));
   }
 
   /** Authenticated request helper: attaches X-API-Key and unwraps {success,data}. */

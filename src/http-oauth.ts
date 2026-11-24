@@ -26,9 +26,10 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 
 import { loadConfig } from "./config.js";
 import { EddyterClient } from "./client.js";
-import { registerEddyterTools } from "./tools.js";
+import { registerEddyterTools, SERVER_INSTRUCTIONS } from "./tools.js";
 import { EddyterOAuthProvider } from "./oauth/provider.js";
 import { verifyAssertion } from "./oauth/assertion.js";
+import { detectSignupSource } from "./oauth/source.js";
 
 const baseConfig = loadConfig();
 const PORT = Number(process.env.PORT ?? 8789);
@@ -153,8 +154,18 @@ app.post("/mcp", bearer, async (req: Request, res: Response) => {
   }
   try {
     const client = new EddyterClient({ ...baseConfig, defaultLicenseKey: licenseKey });
-    const server = new McpServer({ name: "eddyter", version: "0.1.0" });
-    registerEddyterTools(server, client, baseConfig.allowWrites);
+    const server = new McpServer(
+      { name: "eddyter", version: "0.1.0" },
+      { instructions: SERVER_INSTRUCTIONS },
+    );
+    // Which app this token belongs to, for tool-call analytics (same values as signup source).
+    const oauthClient = auth?.clientId
+      ? await provider.clientsStore.getClient(auth.clientId)
+      : undefined;
+    const mcpClient = oauthClient
+      ? detectSignupSource(oauthClient.client_name, oauthClient.redirect_uris[0] ?? "")
+      : undefined;
+    registerEddyterTools(server, client, baseConfig.allowWrites, mcpClient);
 
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
     res.on("close", () => {
