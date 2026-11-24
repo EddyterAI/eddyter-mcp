@@ -33,6 +33,9 @@ import { detectSignupSource } from "./oauth/source.js";
 
 const baseConfig = loadConfig();
 const PORT = Number(process.env.PORT ?? 8789);
+// Loopback only: nginx is the sole way in. With "trust proxy" below, a caller who
+// could reach this port directly could set X-Forwarded-For and dodge the per-IP limits.
+const HOST = process.env.HOST ?? "127.0.0.1";
 const ISSUER = process.env.MCP_ISSUER_URL ?? "https://mcp.eddyter.com";
 // The protected resource is the /mcp endpoint itself, not the bare host — clients
 // look up its metadata at /.well-known/oauth-protected-resource/mcp (RFC 9728).
@@ -66,6 +69,16 @@ app.use(express.json());
 app.get("/health", (_req, res) =>
   res.json({ ok: true, service: "eddyter-mcp", auth: "oauth" }),
 );
+
+// OpenAI plugin-directory domain verification. The submission portal
+// (platform.openai.com/plugins → MCP tab) issues a token and then GETs it back
+// from this host to prove we control mcp.eddyter.com. Token lives in the
+// gitignored .env next to ecosystem.config.cjs — no redeploy needed to rotate it.
+app.get("/.well-known/openai-apps-challenge", (_req, res) => {
+  const token = process.env.OPENAI_APPS_CHALLENGE?.trim();
+  if (!token) return res.status(404).type("text/plain").send("not configured");
+  res.type("text/plain").send(token);
+});
 
 // Favicon — this host serves no HTML, so Claude's directory/tool-call icon (fetched
 // via Google's favicon service for mcp.eddyter.com) would fall back to a generic
@@ -187,10 +200,10 @@ app.post("/mcp", bearer, async (req: Request, res: Response) => {
 
 app.get("/mcp", bearer, (_req, res) => res.status(405).set("Allow", "POST").end());
 
-app.listen(PORT, () => {
+app.listen(PORT, HOST, () => {
   // eslint-disable-next-line no-console
   console.log(
-    `[eddyter-mcp:oauth] listening on :${PORT} • issuer=${ISSUER} • ` +
+    `[eddyter-mcp:oauth] listening on ${HOST}:${PORT} • issuer=${ISSUER} • ` +
       `login=${provider ? "configured" : "—"} • ` +
       `dev-key=${process.env.OAUTH_DEV_LICENSE_KEY ? "set (login skipped)" : "off"}`,
   );

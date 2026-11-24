@@ -42,7 +42,7 @@ const FEATURE_LABELS: Record<string, string> = {
   enableLists: "Lists",
   enableColors: "Text & background colors",
   enableNotePanels: "Callout / note panels",
-  enableTodoList: "To-do lists",
+  enableTodoList: "Checklist",
   enableFormatPainter: "Format painter",
 };
 

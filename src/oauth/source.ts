@@ -10,7 +10,7 @@
  * or custom schemes, so only their registered client_name identifies them.
  */
 
-export type SignupSource = "claude" | "claude_code" | "chatgpt" | "cursor" | "mcp_other";
+export type SignupSource = "claude" | "claude_code" | "chatgpt" | "cursor" | "codex" | "mcp_other";
 
 const onHost = (hostname: string, hosts: string[]) =>
   hosts.some((h) => hostname === h || hostname.endsWith(`.${h}`));
@@ -21,6 +21,7 @@ export function detectSignupSource(
 ): SignupSource {
   const name = (clientName ?? "").toLowerCase();
   if (name.includes("claude code")) return "claude_code";
+  if (name.includes("codex")) return "codex";
   if (name.includes("cursor")) return "cursor";
 
   let hostname: string;
