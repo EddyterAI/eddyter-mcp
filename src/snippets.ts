@@ -49,7 +49,27 @@ export default function Editor() {
 }
 `;
 
-export function getIntegrationSnippet(framework: Framework): IntegrationSnippet {
+const PLACEHOLDER_KEY = "your_key_here";
+
+/**
+ * @param licenseKey  the caller's real key (client config or OAuth session). When
+ *   given it is written into the env line so the editor authenticates on first run;
+ *   otherwise the placeholder stays and the notes say where to get a key.
+ */
+export function getIntegrationSnippet(framework: Framework, licenseKey?: string): IntegrationSnippet {
+  const s = buildSnippet(framework);
+  if (licenseKey) {
+    s.env.line = `${s.env.varName}=${licenseKey}`;
+  } else {
+    s.notes.push("Get your key at https://www.eddyter.com/user/license-key");
+  }
+  // The key is public at runtime (the browser sends it) and bound to one domain —
+  // this is hygiene, not secrecy.
+  s.notes.push(`The key goes in ${s.env.file}; make sure that file is in .gitignore.`);
+  return s;
+}
+
+function buildSnippet(framework: Framework): IntegrationSnippet {
   switch (framework) {
     case "react":
     case "vite": {
@@ -63,7 +83,7 @@ export function getIntegrationSnippet(framework: Framework): IntegrationSnippet 
       return {
         framework,
         installCommand: INSTALL,
-        env: { file: ".env", varName, line: `${varName}=your_key_here` },
+        env: { file: ".env", varName, line: `${varName}=${PLACEHOLDER_KEY}` },
         files: [
           { path: "src/components/Editor.tsx", action: "create", content: baseEditor(envExpr + "!") },
         ],
@@ -79,7 +99,7 @@ export function getIntegrationSnippet(framework: Framework): IntegrationSnippet 
       return {
         framework,
         installCommand: INSTALL,
-        env: { file: ".env.local", varName, line: `${varName}=your_key_here` },
+        env: { file: ".env.local", varName, line: `${varName}=${PLACEHOLDER_KEY}` },
         files: [
           {
             path: "components/Editor.tsx",
@@ -114,7 +134,7 @@ export default function EditorClient() {
       return {
         framework,
         installCommand: INSTALL,
-        env: { file: ".env.local", varName, line: `${varName}=your_key_here` },
+        env: { file: ".env.local", varName, line: `${varName}=${PLACEHOLDER_KEY}` },
         files: [
           { path: "components/Editor.tsx", action: "create", content: baseEditor("process.env.NEXT_PUBLIC_EDDYTER_API_KEY!") },
           {
@@ -143,7 +163,7 @@ export default function EditorPage() {
       return {
         framework,
         installCommand: INSTALL,
-        env: { file: ".env", varName, line: `${varName}=your_key_here` },
+        env: { file: ".env", varName, line: `${varName}=${PLACEHOLDER_KEY}` },
         files: [
           {
             path: "app/components/Editor.client.tsx",

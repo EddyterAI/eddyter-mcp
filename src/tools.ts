@@ -17,6 +17,18 @@ import {
   type Framework,
 } from "./snippets.js";
 
+/**
+ * Server instructions (shared by all three entries). Chat sandboxes like claude.ai
+ * and ChatGPT web can't install or run a project, so without this the user gets a
+ * ZIP they never run and never sees the editor working.
+ */
+export const SERVER_INSTRUCTIONS =
+  "After setting up Eddyter or generating Eddyter code, always give the user the live " +
+  "editor link from the tool result (eddyter.com/user/editor). Describe it as a live " +
+  "preview of the editor component that will go into their app — not a writing or notes " +
+  "app. If you cannot run the project yourself (no shell, or a sandboxed web chat), say " +
+  "so and point the user to that link instead of only offering a ZIP.";
+
 const licenseKeyArg = {
   licenseKey: z
     .string()
@@ -56,12 +68,23 @@ function fail(tool: string, licenseKey: string | undefined, err: unknown) {
 /**
  * Register the Eddyter tools on a server.
  * @param allowWrites  expose the mutating `update_config` tool
+ * @param mcpClient    which app is calling (oauth/source.ts values), for usage analytics
  */
 export function registerEddyterTools(
   server: McpServer,
   client: EddyterClient,
   allowWrites: boolean,
+  mcpClient?: string,
 ): void {
+  // Record the call (fire-and-forget) when a key resolves; never affects the tool.
+  const track = (tool: string, licenseKey?: string) => {
+    try {
+      client.recordToolCall(client.resolveLicenseKey(licenseKey), tool, mcpClient);
+    } catch {
+      // no key — nothing to attribute the call to
+    }
+  };
+
   server.registerTool(
     "verify_status",
     {
@@ -73,6 +96,7 @@ export function registerEddyterTools(
       annotations: { title: "Verify License Status", readOnlyHint: true, destructiveHint: false, openWorldHint: true },
     },
     async ({ licenseKey }) => {
+      track("verify_status", licenseKey);
       try {
         const key = client.resolveLicenseKey(licenseKey);
         const { data } = await client.validate(key);
@@ -93,6 +117,7 @@ export function registerEddyterTools(
         if (data.warning) {
           lines.push(`⚠️  ${data.warning.message} (${data.warning.daysRemaining} day(s))`);
         }
+        lines.push("", `Try the editor live (already signed in): ${client.editorLink("verify_status")}`);
         return textResult(lines.join("\n"));
       } catch (err) {
         return fail("verify_status", licenseKey, err);
@@ -112,6 +137,7 @@ export function registerEddyterTools(
       annotations: { title: "Get Editor Config", readOnlyHint: true, destructiveHint: false, openWorldHint: true },
     },
     async ({ licenseKey }) => {
+      track("get_config", licenseKey);
       try {
         const key = client.resolveLicenseKey(licenseKey);
         const { data } = await client.validate(key);
@@ -137,6 +163,7 @@ export function registerEddyterTools(
       annotations: { title: "Get Usage & Credits", readOnlyHint: true, destructiveHint: false, openWorldHint: true },
     },
     async ({ licenseKey }) => {
+      track("get_usage", licenseKey);
       try {
         const key = client.resolveLicenseKey(licenseKey);
         const u = await client.getUsage(key);
@@ -171,8 +198,21 @@ export function registerEddyterTools(
       annotations: { title: "Get Integration Snippet", readOnlyHint: true, destructiveHint: false, openWorldHint: false },
     },
     async ({ framework }) => {
-      const snippet = getIntegrationSnippet(framework as Framework);
-      return textResult(renderSnippet(snippet));
+      track("get_integration_snippet");
+      let key: string | undefined;
+      try {
+        key = client.resolveLicenseKey();
+      } catch {
+        // no key configured — the snippet keeps the placeholder
+      }
+      const snippet = getIntegrationSnippet(framework as Framework, key);
+      return textResult(
+        renderSnippet(snippet) +
+          "\n\nLive preview of this exact editor component, before you run anything: " +
+          `${client.editorLink("get_integration_snippet")}. Share this link with the user — ` +
+          "if you cannot run the project in this environment, it is the only way they can " +
+          "see the editor working.",
+      );
     },
   );
 
@@ -205,13 +245,15 @@ export function registerEddyterTools(
         },
       },
       async ({ licenseKey, customizations }) => {
+        track("update_config", licenseKey);
         try {
           const key = client.resolveLicenseKey(licenseKey);
           const result = await client.updateConfig(key, customizations as Record<string, unknown>);
           const summaries = summarizeFeatures(result.customizations, result.planCustomizations);
           return textResult(
             "✅ Config updated (live now, no redeploy needed).\n\n" +
-              renderFeatureSummary(summaries),
+              renderFeatureSummary(summaries) +
+              `\n\nChanges are live — refresh the editor to see them: ${client.editorLink("update_config")}`,
           );
         } catch (err) {
           return fail("update_config", licenseKey, err);

@@ -26,7 +26,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 
 import { loadConfig } from "./config.js";
 import { EddyterClient } from "./client.js";
-import { registerEddyterTools } from "./tools.js";
+import { registerEddyterTools, SERVER_INSTRUCTIONS } from "./tools.js";
 
 const baseConfig = loadConfig();
 const PORT = Number(process.env.PORT ?? 8787);
@@ -48,7 +48,8 @@ function resolveKeyFromToken(token: string | undefined): string | undefined {
 
 /** Stateless MCP endpoint, guarded by the secret path segment. */
 const mcpHandler = async (req: Request, res: Response) => {
-  const licenseKey = resolveKeyFromToken(req.params.token);
+  const token = req.params.token;
+  const licenseKey = resolveKeyFromToken(typeof token === "string" ? token : undefined);
   // Cheap guard — unknown/implausible tokens get a flat 404 (no backend call,
   // no information leak about whether a path exists).
   if (!licenseKey) {
@@ -59,7 +60,10 @@ const mcpHandler = async (req: Request, res: Response) => {
   try {
     // Per-request server + client scoped to this caller's key, then shared tools.
     const client = new EddyterClient({ ...baseConfig, defaultLicenseKey: licenseKey });
-    const server = new McpServer({ name: "eddyter", version: "0.1.0" });
+    const server = new McpServer(
+      { name: "eddyter", version: "0.1.0" },
+      { instructions: SERVER_INSTRUCTIONS },
+    );
     registerEddyterTools(server, client, baseConfig.allowWrites);
 
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });

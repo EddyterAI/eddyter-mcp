@@ -1,6 +1,6 @@
 {
   "name": "eddyter-mcp",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "private": false,
   "description": "MCP server for Eddyter — let your AI agent set up and configure the Eddyter editor.",
   "license": "MIT",

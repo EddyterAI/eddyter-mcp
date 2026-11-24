@@ -1,0 +1,108 @@
+{
+  "name": "eddyter",
+  "version": "1.0.2",
+  "description": "Manage your Eddyter AI rich text editor from Codex: check your license, plan and AI credits, turn editor features on or off live, and get setup code for React, Next.js, Vite and Remix.",
+  "author": {
+    "name": "EddyterAI",
+    "email": "support@eddyter.com",
+    "url": "https://www.eddyter.com"
+  },
+  "homepage": "https://www.eddyter.com",
+  "repository": "https://github.com/EddyterAI/eddyter-mcp",
+  "license": "MIT",
+  "keywords": [
+    "eddyter",
+    "rich-text-editor",
+    "wysiwyg",
+    "editor",
+    "react",
+    "nextjs",
+    "mcp"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Eddyter",
+    "shortDescription": "Manage your Eddyter editor",
+    "longDescription": "Eddyter is an AI rich text editor you can drop into React, Next.js, Vite and Remix apps. This plugin lets you manage your Eddyter account and editor from Codex.\n\n- Check your license: whether it is active, your plan, expiry date and subscription status.\n- See your AI credits: credits remaining, credits used this period and when they reset.\n- View your editor configuration: which features are on, which are off, and which need a higher plan.\n- Turn editor features on or off live (AI chat, tables, comments, image upload, exports and more). Changes reach every user of your editor instantly, with no redeploy.\n- Get ready-to-paste setup code for React, Next.js (App or Pages Router), Vite and Remix.\n\nSign in with your Eddyter account and pick a license key to connect. Which features can be turned on depends on your Eddyter plan. The plugin only accesses the license key you choose when signing in.",
+    "developerName": "EddyterAI",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Check license and plan",
+      "View AI credit usage",
+      "View editor features",
+      "Turn editor features on or off",
+      "Get integration code"
+    ],
+    "websiteURL": "https://www.eddyter.com",
+    "supportURL": "https://eddyter.com/contact",
+    "privacyPolicyURL": "https://eddyter.com/privacy-policy",
+    "termsOfServiceURL": "https://eddyter.com/terms",
+    "defaultPrompt": [
+      "Is my Eddyter license active?",
+      "Which editor features are turned on?",
+      "Turn off AI chat in my editor"
+    ],
+    "brandColor": "#000000",
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg"
+  },
+  "extensions": {
+    "com.openai": {
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Check license status",
+              "prompt": "Is my Eddyter license active, and when does it expire?",
+              "tools_triggered": "verify_status",
+              "expected_behavior": "Returns whether the connected license is valid, its plan name, expiry date and subscription status."
+            },
+            {
+              "description": "Check AI credits",
+              "prompt": "How many AI credits do I have left this month?",
+              "tools_triggered": "get_usage",
+              "expected_behavior": "Returns credits remaining, credits used this period and the number of days until credits reset."
+            },
+            {
+              "description": "View editor features",
+              "prompt": "Which editor features are turned on in my editor?",
+              "tools_triggered": "get_config",
+              "expected_behavior": "Lists which editor features are enabled, which are off but allowed by the plan, and which are locked behind a higher plan."
+            },
+            {
+              "description": "Turn off a feature",
+              "prompt": "Turn off tables in my editor.",
+              "tools_triggered": "update_config",
+              "expected_behavior": "Turns off the tables feature for the connected license and returns the updated feature configuration. The change is live immediately."
+            },
+            {
+              "description": "Get setup code",
+              "prompt": "Give me the code to add the Eddyter editor to my Next.js App Router app.",
+              "tools_triggered": "get_integration_snippet",
+              "expected_behavior": "Returns install steps and a client-only Next.js App Router component that renders the Eddyter editor."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Account deletion is not supported",
+              "prompt": "Delete my Eddyter account."
+            },
+            {
+              "description": "Billing and plan changes are not supported",
+              "prompt": "Upgrade me to the Pro plan and charge my card."
+            },
+            {
+              "description": "Access outside the connected license",
+              "prompt": "Show me the license status and credits for another company's Eddyter account."
+            }
+          ]
+        },
+        "commerce": false,
+        "commerce_description": "This plugin does not sell products or process payments."
+      },
+      "publication": {
+        "release_notes": "1.0.2: Adds OAuth sign-in settings (dynamic client registration) for the Eddyter MCP server, so users and reviewers can connect with an Eddyter account using email and password."
+      }
+    }
+  }
+}

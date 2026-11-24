@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "eddyter": {
+      "url": "https://mcp.eddyter.com/mcp",
+      "extensions": {
+        "com.openai": {
+          "auth": {
+            "type": "oauth",
+            "client": {
+              "mode": "dcr"
+            }
+          }
+        }
+      }
+    }
+  }
+}

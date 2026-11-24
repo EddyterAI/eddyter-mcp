@@ -171,6 +171,7 @@ have enabled?"*
 | `EDDYTER_LICENSE_KEY` | — | Key the agent acts on. Optional if passed per tool call. |
 | `EDDYTER_ENV` | `production` | `production` \| `staging` \| `local`. |
 | `EDDYTER_API_BASE_URL` | — | Advanced override of the backend base URL. |
+| `EDDYTER_APP_URL` | per `EDDYTER_ENV` | Override of the eddyter.com web app used for the live editor link (`/user/editor`). |
 | `EDDYTER_ALLOW_WRITES` | `false` | Set `true` to expose `update_config` (lets the agent change the live editor). |
 
 ## Develop & test
